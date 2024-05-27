@@ -1,0 +1,81 @@
+<?php
+session_start();
+
+// Check if the logged-in user is an admin
+if ($_SESSION['role'] !== 'admin') {
+    header("Location: index.php");
+    exit();
+}
+
+// Database connection
+$conn = new mysqli("localhost", "username", "password", "database");
+
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $username = $_POST['username'];
+    $role = $_POST['role'];
+
+    // Update user role
+    $stmt = $conn->prepare("UPDATE users SET role = ? WHERE username = ?");
+    $stmt->bind_param("ss", $role, $username);
+    $stmt->execute();
+    $stmt->close();
+}
+
+// Get all users
+$result = $conn->query("SELECT username, role, last_seen FROM users");
+
+?>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="admin-dashboard">
+        <h1>Admin Dashboard</h1>
+        <form method="POST">
+            <label for="username">Username:</label>
+            <input type="text" id="username" name="username" required>
+            <label for="role">Role:</label>
+            <select id="role" name="role" required>
+                <option value="member">Member</option>
+                <option value="moderator">Moderator</option>
+                <option value="admin">Admin</option>
+                <option value="owner">Owner</option>
+            </select>
+            <button type="submit">Change Role</button>
+        </form>
+        <h2>Users</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Username</th>
+                    <th>Role</th>
+                    <th>Last Seen</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php while ($row = $result->fetch_assoc()): ?>
+                    <tr>
+                        <td><?php echo htmlspecialchars($row['username']); ?></td>
+                        <td><?php echo htmlspecialchars($row['role']); ?></td>
+                        <td><?php echo htmlspecialchars($row['last_seen']); ?></td>
+                    </tr>
+                <?php endwhile; ?>
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>
+
+<?php
+$conn->close();
+?>
